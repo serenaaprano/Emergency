@@ -64,6 +64,16 @@ public class Patient implements Comparable<Patient> {
 			return false;
 		return true;
 	}
+	/*
+	 * 
+	 * criterio con cui stabilisco chi, fra due pazienti, ha priorita maggiore
+	 * se il colore dei due p è lo stesso, si confronta chi è arrivato prima
+	 * se uno dei due è rosso, vince il rosso
+	 * 
+	 * numero negativo: this ha priorità
+	 * numero positivo:other ha priorita
+	 * questo perche nella coda primaria ha priorità di uscire prima chi è prima nella lista
+	 */
 
 	@Override
 	public int compareTo(Patient other) {

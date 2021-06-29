@@ -18,6 +18,7 @@ public class Simulator {
 	private List<Patient> patients;
 	private PriorityQueue<Patient> waitingRoom;
 	// contiene SOLO i pazienti in attesa (WHITE/YELLOW/RED)
+	//al triage, qaundo so se il paziente è w y o r , li inserisco in lista di attesa
 
 	private int freeStudios; // numero studi liberi
 
@@ -34,9 +35,9 @@ public class Simulator {
 	private Duration DURATION_YELLOW = Duration.ofMinutes(15);
 	private Duration DURATION_RED = Duration.ofMinutes(30);
 
-	private Duration TIMEOUT_WHITE = Duration.ofMinutes(60);
-	private Duration TIMEOUT_YELLOW = Duration.ofMinutes(30);
-	private Duration TIMEOUT_RED = Duration.ofMinutes(30);
+	private Duration TIMEOUT_WHITE = Duration.ofMinutes(60); //un white dopo 60 min se ne va
+	private Duration TIMEOUT_YELLOW = Duration.ofMinutes(30);//un yellow dopo 30 min diventa red
+	private Duration TIMEOUT_RED = Duration.ofMinutes(30);//un red dopo 30 min diventa black(muore)
 
 	private LocalTime startTime = LocalTime.of(8, 00);
 	private LocalTime endTime = LocalTime.of(20, 00);
@@ -54,9 +55,9 @@ public class Simulator {
 		// inizializza modello del mondo
 		this.patients = new ArrayList<>();
 		this.waitingRoom = new PriorityQueue<>() ;
-		this.freeStudios = this.totStudios;
+		this.freeStudios = this.totStudios; //inizialmente tutti gli studi sono free
 
-		this.ultimoColore = ColorCode.RED;
+		this.ultimoColore = ColorCode.RED; //inizializzo a red cosi il metodo prossimo colore parte dal bianco
 
 		// inizializza i parametri di output
 		this.patientsAbandoned = 0;
@@ -66,13 +67,13 @@ public class Simulator {
 		// inietta gli eventi di input (ARRIVAL)
 
 		LocalTime ora = this.startTime;
-		int inseriti = 0;
+		int inseriti = 0; 
 //		Patient.ColorCode colore = ColorCode.WHITE ;
 
 		this.queue.add(new Event(ora, EventType.TICK, null)) ;
 
-		while (ora.isBefore(this.endTime) && inseriti < this.numPatients) {
-			Patient p = new Patient(inseriti, ora, ColorCode.NEW);
+		while (ora.isBefore(this.endTime) && inseriti < this.numPatients) { //inserisco pazienti fino alla fine del turno e fino a quando non ho raggiunto il numero massimo di pazienti
+			Patient p = new Patient(inseriti, ora, ColorCode.NEW); //color code è new perche il paziente è ancora in triage e non gli è ancora stato assegnato un colore
 
 			Event e = new Event(ora, EventType.ARRIVAL, p);
 
@@ -83,7 +84,7 @@ public class Simulator {
 			ora = ora.plus(T_ARRIVAL);
 		}
 	}
-
+// funzione che attribuisce casualmente un colore al paziente
 	private Patient.ColorCode prossimoColore() {
 		if (ultimoColore.equals(ColorCode.WHITE))
 			ultimoColore = ColorCode.YELLOW;
@@ -116,7 +117,7 @@ public class Simulator {
 		case TRIAGE:
 			p.setColor(prossimoColore());
 			if (p.getColor().equals(Patient.ColorCode.WHITE)) {
-				this.queue.add(new Event(ora.plus(TIMEOUT_WHITE), EventType.TIMEOUT, p));
+				this.queue.add(new Event(ora.plus(TIMEOUT_WHITE), EventType.TIMEOUT, p)); //se il colore è bianco, schedulo un evento timeout dopo tot tempo
 				this.waitingRoom.add(p);
 			} else if (p.getColor().equals(Patient.ColorCode.YELLOW)) {
 				this.queue.add(new Event(ora.plus(TIMEOUT_YELLOW), EventType.TIMEOUT, p));
@@ -131,16 +132,19 @@ public class Simulator {
 			if(this.freeStudios==0)
 				return ;
 			// Quale paziente ha diritto di entrare???
-			Patient primo = this.waitingRoom.poll() ;
+			//dalla lista di pazienti in lista d'attesa chi è piu grave?
+			Patient primo = this.waitingRoom.poll() ; //ritorna null se la coda è vuota
 			if(primo!=null) {
 				// ammetti il paziente nello studio
+				//calcolo il tempo di trattamento in base ai colori
 				if(primo.getColor().equals(ColorCode.WHITE))
 					this.queue.add(new Event(ora.plus(DURATION_WHITE), EventType.TREATED, primo)) ;
 				if(primo.getColor().equals(ColorCode.YELLOW))
 					this.queue.add(new Event(ora.plus(DURATION_YELLOW), EventType.TREATED, primo)) ;
 				if(primo.getColor().equals(ColorCode.RED))
 					this.queue.add(new Event(ora.plus(DURATION_RED), EventType.TREATED, primo)) ;
-				primo.setColor(ColorCode.TREATING);
+				primo.setColor(ColorCode.TREATING); //lui viene curato
+				//uno studio viene occupato
 				this.freeStudios-- ;
 			}
 			break;
@@ -157,8 +161,9 @@ public class Simulator {
 			case YELLOW:
 				this.waitingRoom.remove(p) ;
 				p.setColor(ColorCode.RED);
+				//siccome adesso è rosso, vale il timeout del rosso
 				this.queue.add(new Event(ora.plus(TIMEOUT_RED), EventType.TIMEOUT, p));
-				this.waitingRoom.add(p) ;
+				this.waitingRoom.add(p) ; // p adesso è cambiato, quindi devo rifare un add, perche p adesso ha una priorità diversa
 				break;
 
 			case RED:
@@ -176,17 +181,17 @@ public class Simulator {
 			this.patientsTreated++;
 			p.setColor(ColorCode.OUT);
 			this.freeStudios++ ;
-			this.queue.add(new Event(ora, EventType.FREE_STUDIO, null)) ;
-			break;
+			this.queue.add(new Event(ora, EventType.FREE_STUDIO, null)) ; 
+			break; 
 			
 		case TICK:
-			if(this.freeStudios>0 && !this.waitingRoom.isEmpty())
-				this.queue.add(new Event(ora, EventType.FREE_STUDIO, null)) ;
 			if(ora.isBefore(this.endTime))
 				this.queue.add(new Event(ora.plus(Duration.ofMinutes(5)), EventType.TICK, null));
 			break;
 		}
 	}
+	
+	// set per i parametri di ingresso(INPUT)
 
 	public void setTotStudios(int totStudios) {
 		this.totStudios = totStudios;
@@ -236,6 +241,8 @@ public class Simulator {
 		this.endTime = endTime;
 	}
 
+	//getter per i parametri di uscita(OUTPUT)
+	
 	public int getPatientsTreated() {
 		return patientsTreated;
 	}

@@ -18,7 +18,7 @@ public class Event implements Comparable<Event>{
 		TICK, // timer per controllare se ci sono studi liberi
 	} ;
 
-	private LocalTime time ;
+	private LocalTime time ; //marcatura temporale dell'evento stesso 
 	private EventType type ;
 	private Patient patient ;
 	
@@ -46,6 +46,10 @@ public class Event implements Comparable<Event>{
 	public void setPatient(Patient patient) {
 		this.patient = patient;
 	}
+	
+	/**
+	 * gli eventi sono comparati cronologicamente
+	 */
 	
 	@Override
 	public int compareTo(Event other) {
